@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useAuth } from '../lib/AuthContext.tsx'
+import { useAuth } from '../lib/AuthContext'
 
 export default function Login() {
   const { signIn } = useAuth()
