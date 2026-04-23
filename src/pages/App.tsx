@@ -363,6 +363,14 @@ const STORAGE = {
   },
   saveDay(day) {
     localStorage.setItem(`baseline:day:${day.date}`, JSON.stringify(day));
+    // Background sync to Supabase
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data?.user) return;
+      supabase.from('days').upsert(
+        { user_id: data.user.id, date: day.date, data: day, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id,date' }
+      ).then(() => {});
+    });
   },
   listDays() {
     const out = [];
@@ -394,6 +402,14 @@ const STORAGE = {
   },
   saveConfig(c) {
     localStorage.setItem('baseline:config', JSON.stringify(c));
+    // Background sync to Supabase
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data?.user) return;
+      supabase.from('config').upsert(
+        { user_id: data.user.id, data: c, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' }
+      ).then(() => {});
+    });
   },
   exportAll() {
     const data = {
@@ -3725,16 +3741,39 @@ function Baseline() {
   });
   const [loaded, setLoaded] = useState(false);
 
-  // Initial load
+  // Initial load — pull from Supabase first, fall back to localStorage
   useEffect(() => {
-    const cfg = STORAGE.getConfig();
-    setConfig(cfg);
-    const today = todayISO();
-    setViewDate(today);
-    const existing = STORAGE.getDay(today);
-    setAllDays(STORAGE.listDays());
-    setDay(computeDay(existing || emptyDay(today)));
-    setLoaded(true);
+    const loadData = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      const userId = authData?.user?.id;
+      const today = todayISO();
+
+      if (userId) {
+        // Pull all days from Supabase and seed localStorage
+        const { data: remoteDays } = await supabase.from('days').select('data').eq('user_id', userId);
+        if (remoteDays && remoteDays.length > 0) {
+          for (const row of remoteDays) {
+            if (row.data && row.data.date) {
+              localStorage.setItem(`baseline:day:${row.data.date}`, JSON.stringify(row.data));
+            }
+          }
+        }
+        // Pull config from Supabase
+        const { data: remoteConfig } = await supabase.from('config').select('data').eq('user_id', userId).single();
+        if (remoteConfig?.data) {
+          localStorage.setItem('baseline:config', JSON.stringify(remoteConfig.data));
+        }
+      }
+
+      const cfg = STORAGE.getConfig();
+      setConfig(cfg);
+      setViewDate(today);
+      const existing = STORAGE.getDay(today);
+      setAllDays(STORAGE.listDays());
+      setDay(computeDay(existing || emptyDay(today)));
+      setLoaded(true);
+    };
+    loadData();
   }, []);
 
   // When viewDate changes, load that day
