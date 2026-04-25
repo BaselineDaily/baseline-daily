@@ -544,10 +544,11 @@ function Shell({ children, tab, setTab, viewDate, prevDay, nextDay, goToToday, d
           <div className="logo-big" style={{ fontFamily: f.display, fontSize: 28, fontWeight: 900, letterSpacing: '-0.02em' }}>BASELINE</div>
           <div style={{ fontFamily: f.mono, fontSize: 10, color: s.textDim, letterSpacing: '0.15em', marginTop: 2 }}>ESTABLISH YOURS · THEN BEAT IT</div>
         </div>
-        <div className="tabs-row" style={{ display: 'flex', gap: 4 }}>
+        <div className="tabs-row" style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           {['Today', 'Log', 'Week', 'Trends', 'Config'].map(t => (
             <button key={t} className="tab-btn" onClick={() => setTab(t)} style={{ background: tab === t ? s.gold : 'transparent', color: tab === t ? '#000' : s.text, border: `1px solid ${tab === t ? s.gold : s.border}`, padding: '8px 14px', fontFamily: f.mono, fontSize: 11, letterSpacing: '0.1em', cursor: 'pointer', fontWeight: 600 }}>{t.toUpperCase()}</button>
           ))}
+          <button onClick={() => supabase.auth.signOut().then(() => { window.location.href = '/login' })} style={{ background: 'transparent', color: s.textDim, border: `1px solid ${s.border}`, padding: '8px 14px', fontFamily: f.mono, fontSize: 11, letterSpacing: '0.1em', cursor: 'pointer', marginLeft: 8 }}>LOGOUT</button>
         </div>
       </div>
       {showNav && (
